@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACGN 次元人格鉴定手册</title>
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'neo-cyan': '#00f0ff',
+        'sakura': '#ff2a85',
+        'gold': '#f39c12',
+        'dark-bg': '#121820',
+        'card-bg': '#1a2530',
+      },
+      fontFamily: {
+        sans: ['"Noto Sans SC"', '"Microsoft YaHei"', 'sans-serif'],
+      },
+      animation: {
+        'float': 'float 3s ease-in-out infinite',
+        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
+        'slide-in-right': 'slideInRight 0.5s ease-out',
+        'slide-out-left': 'slideOutLeft 0.5s ease-in',
+        'fade-in': 'fadeIn 0.6s ease-out',
+        'fade-in-up': 'fadeInUp 0.6s ease-out',
+        'spin-slow': 'spin 4s linear infinite',
+        'particle-rise': 'particleRise 8s linear infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        glowPulse: {
+          '0%, 100%': { boxShadow: '0 0 10px rgba(0,240,255,0.3)' },
+          '50%': { boxShadow: '0 0 25px rgba(0,240,255,0.6)' },
+        },
+        slideInRight: {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '100%': { transform: 'translateX(0)', opacity: '1' },
+        },
+        slideOutLeft: {
+          '0%': { transform: 'translateX(0)', opacity: '1' },
+          '100%': { transform: 'translateX(-100%)', opacity: '0' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        fadeInUp: {
+          '0%': { transform: 'translateY(30px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        particleRise: {
+          '0%': { transform: 'translateY(100vh) scale(0)', opacity: '0' },
+          '10%': { opacity: '1' },
+          '90%': { opacity: '1' },
+          '100%': { transform: 'translateY(-10vh) scale(1)', opacity: '0' },
+        },
+      },
+    },
+  },
+};
+</script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+<style>
+/* ============ 全局基础样式 ============ */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  background: #121820;
+  color: #e0e0e0;
+  margin: 0;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* ============ Canvas 粒子背景 ============ */
+#particleCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ============ 主容器 ============ */
+#app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============ 页面面板通用 ============ */
+.page-panel {
+  display: none;
+  width: 100%;
+  max-width: 720px;
+  padding: 20px;
+  margin: 0 auto;
+}
+.page-panel.active {
+  display: block;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* ============ 玻璃卡片 ============ */
+.glass-card {
+  background: rgba(26, 37, 48, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 36px 28px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  transition: all 0.3s ease;
+}
+
+/* ============ 霓虹文字 ============ */
+.neon-text {
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.3);
+}
+.neon-text-pink {
+  text-shadow: 0 0 10px rgba(255, 42, 133, 0.6), 0 0 30px rgba(255, 42, 133, 0.3);
+}
+.neon-text-gold {
+  text-shadow: 0 0 10px rgba(243, 156, 18, 0.6), 0 0 30px rgba(243, 156, 18, 0.3);
+}
+
+/* ============ 上传区域 ============ */
+.upload-zone {
+  border: 2px dashed rgba(0, 240, 255, 0.3);
+  border-radius: 20px;
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.35s ease;
+  background: rgba(0, 240, 255, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0,240,255,0.08) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+.upload-zone:hover {
+  border-color: rgba(0, 240, 255, 0.7);
+  background: rgba(0, 240, 255, 0.06);
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+}
+.upload-zone:hover::before { opacity: 1; }
+.upload-zone.drag-over {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.25);
+  transform: scale(1.02);
+}
+
+/* ============ 按钮样式 ============ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(135deg, #00f0ff 0%, #0099cc 100%);
+  box-shadow: 0 4px 20px rgba(0, 240, 255, 0.3);
+}
+.btn-primary:hover {
+  box-shadow: 0 6px 30px rgba(0, 240, 255, 0.5);
+  transform: translateY(-2px);
+}
+.btn-primary:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 10px rgba(0, 240, 255, 0.2);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 14px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.25s ease;
+  color: #e0e0e0;
+  background: rgba(255, 255, 255, 0.05);
+}
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+}
+.btn-secondary:active { transform: scale(0.95); }
+
+.btn-sakura {
+  background: linear-gradient(135deg, #ff2a85 0%, #cc0066 100%);
+  box-shadow: 0 4px 20px rgba(255, 42, 133, 0.3);
+}
+.btn-sakura:hover {
+  box-shadow: 0 6px 30px rgba(255, 42, 133, 0.5);
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  box-shadow: 0 4px 20px rgba(243, 156, 18, 0.3);
+}
+.btn-gold:hover {
+  box-shadow: 0 6px 30px rgba(243, 156, 18, 0.5);
+}
+
+/* ============ 选项卡片 ============ */
+.option-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+.option-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,240,255,0.08) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.option-card:hover {
+  border-color: rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.06);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 24px rgba(0, 240, 255, 0.12);
+}
+.option-card:hover::before { opacity: 1; }
+.option-card.selected {
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.12);
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+  transform: scale(1.02);
+}
+.option-card.selected .option-letter {
+  background: #00f0ff;
+  color: #121820;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.5);
+}
+.option-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.option-text {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #c8c8d0;
+}
+
+/* ============ 进度条 ============ */
+.progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #00f0ff, #ff2a85);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============ 加载动画 - 魔法阵 ============ */
+.magic-circle {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0, 240, 255, 0.2);
+  border-top-color: #00f0ff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: relative;
+}
+.magic-circle::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px solid rgba(255, 42, 133, 0.2);
+  border-top-color: #ff2a85;
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite reverse;
+}
+.magic-circle::after {
+  content: '✦';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #f39c12;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* ============ 结果页雷达图容器 ============ */
+.radar-container {
+  position: relative;
+  max-width: 400px;
+  margin: 0 auto;
+}
+.radar-container canvas {
+  filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.3));
+}
+
+/* ============ 角色立绘 ============ */
+.character-portrait {
+  max-width: 280px;
+  width: 100%;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(0, 240, 255, 0.15);
+  object-fit: cover;
+  aspect-ratio: 3/4;
+  background: rgba(0,0,0,0.3);
+}
+
+/* ============ 结果按钮 ============ */
+.result-type-badge {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.08);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #00f0ff;
+}
+
+/* ============ 打印样式 ============ */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  #particleCanvas { display: none !important; }
+  .glass-card {
+    background: #fff !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+  .btn-primary, .btn-secondary, .btn-sakura, .btn-gold,
+  #btn-back, #btn-restart-result, #btn-save-result {
+    display: none !important;
+  }
+  .neon-text, .neon-text-pink, .neon-text-gold {
+    text-shadow: none !important;
+    color: #000 !important;
+  }
+  .result-type-badge {
+    border-color: #000 !important;
+    color: #000 !important;
+    background: #eee !important;
+  }
+  .character-portrait {
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+  }
+  @page { margin: 1cm; }
+}
+
+/* ============ 响应式微调 ============ */
+@media (max-width: 640px) {
+  .glass-card { padding: 24px 16px; border-radius: 18px; }
+  .option-card { padding: 14px 16px; }
+  .option-text { font-size: 14px; }
+  .btn-primary, .btn-secondary { padding: 12px 24px; font-size: 14px; width: 100%; }
+  .upload-zone { padding: 32px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 粒子背景 Canvas -->
+<canvas id="particleCanvas"></canvas>
+
+<!-- 应用主体 -->
+<div id="app">
+
+  <!-- ==================== 页面 1：欢迎页 ==================== -->
+  <div class="page-panel active" id="page-welcome">
+    <div class="glass-card text-center">
+      <!-- 标题 -->
+      <div class="mb-2 text-5xl font-black tracking-wider neon-text" style="background: linear-gradient(135deg, #00f0ff, #ff2a85); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+        ACGN
+      </div>
+      <h1 class="text-2xl md:text-3xl font-bold mb-2 text-white">次元人格鉴定手册</h1>
+      <p class="text-sm text-gray-400 mb-2">基于真实场景抉择的深度人格偏好测试</p>
+      <p class="text-xs text-gray-600 mb-8">16 道沉浸式 ACGN 场景题 · 4 大维度精准鉴定</p>
+
+      <!-- 测试说明 -->
+      <div class="text-left text-sm text-gray-400 mb-8 p-4 rounded-xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+        <p class="mb-2 font-medium text-gray-300">测评说明</p>
+        <p>请完全把自己代入题干所述的场景与立场中，凭第一本能做出选择。记录每题你所选的选项（A / B / C / D），完成后系统将自动计算你的四位次元人格代码。</p>
+      </div>
+
+      <!-- 开始测试按钮 -->
+      <button class="btn-sakura btn-primary w-full mb-3" id="btnStartQuiz" type="button">
+        <i data-lucide="play" class="w-5 h-5"></i>
+        开始次元鉴定
+      </button>
+
+      <!-- 恢复进度按钮 -->
+      <button class="btn-gold btn-primary w-full hidden" id="btnResume" type="button">
+        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+        恢复上次答题进度
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== 页面 2：答题页 ==================== -->
+  <div class="page-panel" id="page-quiz">
+    <div class="glass-card">
+      <!-- 进度指示器 -->
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-gray-400" id="quizProgressLabel">进度: 第 1 / 16 题</span>
+        <span class="text-xs text-gray-500" id="quizDimension"></span>
+      </div>
+      <div class="progress-bar-bg mb-6">
+        <div class="progress-bar-fill" id="progressBar" style="width: 0%;"></div>
+      </div>
+
+      <!-- 题目区 -->
+      <div id="questionArea">
+        <h2 class="text-xl md:text-2xl font-bold text-white mb-2" id="questionTitle"></h2>
+        <p class="text-sm text-gray-500 italic mb-6 leading-relaxed" id="questionContext"></p>
+      </div>
+
+      <!-- 选项区 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6" id="optionsContainer"></div>
+
+      <!-- 选中后的反馈文字 -->
+      <div id="selectionFeedback" class="hidden text-center text-sm text-neo-cyan mb-4 animate-fade-in"></div>
+
+      <!-- 底部控制 -->
+      <div class="flex items-center justify-between gap-3">
+        <button class="btn-secondary text-sm" id="btnPrev" type="button">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          上一题
+        </button>
+        <span class="text-xs text-gray-600" id="answerStatus"></span>
+        <div class="w-20"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 页面 3：结果页 ==================== -->
+  <div class="page-panel" id="page-result">
+    <div class="glass-card text-center">
+      <!-- 人格类型 -->
+      <div class="result-type-badge mb-3" id="resultBadge"></div>
+      <h1 class="text-3xl md:text-4xl font-black text-white mb-1 neon-text" id="resultType"></h1>
+
+      <!-- 角色信息 -->
+      <div class="flex justify-center mb-4">
+        <img class="character-portrait" id="characterImage" alt="角色立绘" src="">
+      </div>
+      <h2 class="text-xl md:text-2xl font-bold neon-text-gold mb-1" id="characterName"></h2>
+      <p class="text-sm text-gray-400 italic mb-2" id="characterQuote"></p>
+      <p class="text-sm text-gray-300 leading-relaxed mb-6 max-w-md mx-auto" id="characterDesc"></p>
+
+      <!-- 雷达图 -->
+      <div class="radar-container mb-6">
+        <canvas id="radarChart"></canvas>
+      </div>
+
+      <!-- 维度详情 -->
+      <div class="grid grid-cols-2 gap-2 mb-6 text-left" id="dimensionDetails"></div>
+
+      <!-- 操作按钮 -->
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button class="btn-sakura btn-primary" id="btnRestart" type="button">
+          <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+          重新测试
+        </button>
+        <button class="btn-gold btn-primary" id="btnSaveResult" type="button">
+          <i data-lucide="download" class="w-5 h-5"></i>
+          保存结果卡片
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 加载覆盖层 ==================== -->
+  <div class="page-panel hidden" id="page-loading" style="display:none;">
+    <div class="glass-card text-center flex flex-col items-center justify-center py-12">
+      <div class="magic-circle mb-6"></div>
+      <p class="text-base text-gray-300" id="loadingText">正在解析次元通道...</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+//  全局状态管理
+// ============================================================
+const STATE = {
+  questions: [],          // 解析后的题目数组
+  answers: [],            // 用户答案数组 [{questionIndex, optionLetter}]
+  currentQuestion: 0,     // 当前题目索引
+  totalQuestions: 16,
+  mbtiResult: null,       // 计算结果 {type, scores}
+  isTransitioning: false, // 是否正在切换题目动画中
+};
+
+// ============================================================
+//  题库（来自 PDF 问卷：ACGN 次元人格鉴定手册）
+//  16 道基于真实 ACGN 场景的深度人格偏好测试题
+// ============================================================
+const DEFAULT_QUESTIONS = [
+  {
+    id: 1,
+    stem: '悬浮城艾恩葛朗特的起始城镇广场',
+    context: '冰冷的系统公告在天空中回荡，原本热闹的出生地瞬间被恐慌吞噬，周围人群有的跪地痛哭，有的盲目狂奔。此时你会：',
+    options: [
+      { letter: 'A', text: '立刻站上高台，向周围惊慌失措的人群大声呼喊，试图就地重组秩序并公开招募队员。' },
+      { letter: 'B', text: '迅速环顾四周，寻找身边看起来最冷静的几个人低声商谈结盟，通过小团体交换情报互保。' },
+      { letter: 'C', text: '保持沉默，退到不易察觉的阴影中，冷眼观察周围人的反应，暗中标记潜在的强者与隐患。' },
+      { letter: 'D', text: '压低兜帽，趁着大部队还在混乱推搡，一言不发地拨开人群，独自冲向城外抢占升级资源。' },
+    ],
+    dimension: 'E/I',
+    source: '《刀剑神域》',
+  },
+  {
+    id: 2,
+    stem: '炽热喧嚣的东京体育馆排球场',
+    context: '比分咬死在最后的死局，胜负全在一球之间。作为球场上的核心成员之一，你此时最渴望通过何种方式介入？',
+    options: [
+      { letter: 'A', text: '眼神坚定地向发球员或二传手要球，渴望在全场的欢呼或叹息声中，亲手扣下最终决定胜负的这一球。' },
+      { letter: 'B', text: '积极跑动拉开防线，向身边的队友高声喊话调整气势，试图用自己的声势为整个团队分担压力。' },
+      { letter: 'C', text: '在起跳的刹那保持绝对的理性，用极其隐蔽的假动作偏过防守队员，将球轻吊到空档处。' },
+      { letter: 'D', text: '专注于自己负责的边缘防守区域，死死盯住球的落点，在无声中完成最严密的一次接发。' },
+    ],
+    dimension: 'E/I',
+    source: '《排球少年！！》',
+  },
+  {
+    id: 3,
+    stem: '巨兽横行的太古之岛小花园海岸',
+    context: '远航的船只终于在浓雾散去后靠岸，眼前是一片完全没有记载的奇幻原始陆地。当船长发出探索许可时，你倾向于：',
+    options: [
+      { letter: 'A', text: '第一个跳下甲板，大笑着冲向未知的密林，直奔传闻中的最深处去寻找潜在的遗迹与巨型生物。' },
+      { letter: 'B', text: '主动拉上相熟的同伴组队下船，一边高声谈笑缓解紧张情绪，一边计划着探索路线。' },
+      { letter: 'C', text: '默默留在最后，等嘈杂的人群散去后才独自下船，拿着手记本寻找不引人注意的生态细节。' },
+      { letter: 'D', text: '选择留守在船舱内照看物资，享受难得的清静，继续翻阅出航前未读完的航海日志。' },
+    ],
+    dimension: 'E/I',
+    source: '《航海王》',
+  },
+  {
+    id: 4,
+    stem: '阴暗威严的纳萨力克地下大坟墓王座厅',
+    context: '你带着满级公会和一群对你绝对忠诚的部下集体穿越到了陌生的异世界。作为拥有绝对话语权的统治者，你打算：',
+    options: [
+      { letter: 'A', text: '定期召集麾下所有高层将领，在王座前聆听他们的效忠与报告，通过高频互动管理领地。' },
+      { letter: 'B', text: '亲自带队视察各个防线，慰问基层守卫，通过频繁的实质性接触来拉拢人心。' },
+      { letter: 'C', text: '习惯高高在上地俯瞰一切，除了下达绝对命令外极少开口，用无声的神秘感制造威压。' },
+      { letter: 'D', text: '把繁杂的领地事务全权丢给亲信打理，自己长期隐居在密室中私下钻研未知世界的底层规则。' },
+    ],
+    dimension: 'E/I',
+    source: '《Overlord》',
+  },
+  {
+    id: 5,
+    stem: '惨烈绝望的希干希纳区外围荒原',
+    context: '迎着对面扔来的漫天飞石与沙尘，长官率领队伍发起了毫无退路的最后冲锋。在战马狂奔的轰鸣中，你脑子里在想什么？',
+    options: [
+      { letter: 'A', text: '视线死死锁定飞石的物理轨迹，精准计算突围的死角与推进装备的剩余能源。' },
+      { letter: 'B', text: '紧跟前方马蹄留下的泥印，随时根据地形和身旁战友的落马情况调整手里的缰绳。' },
+      { letter: 'C', text: '从宏大的历史演变视角，审视这场不可避免的牺牲在人类整体命运长河中的最终定位。' },
+      { letter: 'D', text: '体验到一种近乎宿命的纯粹感，不在乎肉体的生死，只专注于冲锋这一行为背后的道义。' },
+    ],
+    dimension: 'S/N',
+    source: '《进击的巨人》',
+  },
+  {
+    id: 6,
+    stem: '深夜沉寂的利塞布尔宅邸暗室',
+    context: '剧烈的白光散去，眼前的炼成阵化为废墟，四周散落着碎裂的物质原料。面对失败，你最本能的关注点在于：',
+    options: [
+      { letter: 'A', text: '忍着肉体不适，迅速清点眼前的化学原材料，试图找出公式配比或质量守恒上的计算漏洞。' },
+      { letter: 'B', text: '优先寻找医疗工具处理伤口，并详细记录下这次失败的物理参数，为下一次实验积累依据。' },
+      { letter: 'C', text: '凝视着废墟中隐约浮现的未知刻印，试图解析复杂的几何花纹，领悟世界能量运行的本源。' },
+      { letter: 'D', text: '精神陷入长久的沉思，放弃对具体物质的执念，试图用直觉去捕捉法则流动的动向。' },
+    ],
+    dimension: 'S/N',
+    source: '《钢之炼金术师》',
+  },
+  {
+    id: 7,
+    stem: '廷根市佐特兰街14号的黑夜教堂地下室',
+    context: '魔药顺着喉咙滑下，狂暴的超凡能量在你体内横冲直撞。当意识重新凝聚时，你首先去感知的是：',
+    options: [
+      { letter: 'A', text: '仔细评估视力、听力、肌肉强度以及神经反射的具体数值指标，测试新肉体的物理极限。' },
+      { letter: 'B', text: '严格按照预先背诵的安全指南，一步步核对身体是否出现文献中所记载的物理排异反应。' },
+      { letter: 'C', text: '竭力去分辨耳边那些层层叠叠的虚妄低语，试图从纷杂的响动中解析出高维存在的隐秘历史。' },
+      { letter: 'D', text: '任由精神在虚无中飘荡，从破碎的命运幻象中寻找自己这条道路通往更深层次的微弱提示。' },
+    ],
+    dimension: 'S/N',
+    source: '《诡秘之主》',
+  },
+  {
+    id: 8,
+    stem: '私立大国学园洒满阳光的校园草地',
+    context: '你捡到了一本据称「写上名字就能取人性命」的未知笔记本。在确认其具备超自然力量后，你的第一反应是：',
+    options: [
+      { letter: 'A', text: '极其谨慎地挑选几个远在海外、证据确凿的在押死刑犯进行对比实验，验证其生效规则。' },
+      { letter: 'B', text: '仔细研究笔记本的物理材质、字迹，尝试找出其在时间限制、死因操控上的各种边界漏洞。' },
+      { letter: 'C', text: '瞬间开始推演一个彻底清除犯罪、重新构建社会底层逻辑的宏大秩序图景。' },
+      { letter: 'D', text: '畅想因果律被改写后的世界宏观走向，思考生死大权的真正本质，将自己代入幕后推动者的角色。' },
+    ],
+    dimension: 'S/N',
+    source: '《死亡笔记》',
+  },
+  {
+    id: 9,
+    stem: '因斯滕斯要塞弥漫硝烟的野战医院',
+    context: '作为负责代笔的书写员，你守在一名奄奄一息的伤员身旁，奉命为其远方的家属撰写最后的信件。你会：',
+    options: [
+      { letter: 'A', text: '逻辑清晰地帮他清点个人财产，罗列抚恤金发放流程及未竟的具体事务，确保不漏事实细节。' },
+      { letter: 'B', text: '用冷静克制的语言记录他的核心遗言，不夹杂多余的主观修饰，确保亲属能获得最准确的现场信息。' },
+      { letter: 'C', text: '放弃死板的公文格式，拼尽全力捕捉他眼神中流露的眷恋，将其转化为极其饱满的情感文字。' },
+      { letter: 'D', text: '握住他的手，在悲伤的共鸣中边倾听边记录，哪怕字迹颤抖，也要传递出生命最后的温度。' },
+    ],
+    dimension: 'T/F',
+    source: '《紫罗兰永恒花园》',
+  },
+  {
+    id: 10,
+    stem: '被黑泥污染的大圣杯精神世界',
+    context: '未知力量在你面前构建了一个冰冷的难题：人为拨动道岔牺牲左边的1个人，就能救右边的100个人；如果不做出理智抉择，所有人一起毁灭。你会：',
+    options: [
+      { letter: 'A', text: '毫不犹豫地下达牺牲1人、拯救100人的指令。差额就是绝对的客观，为了保全多数必须舍弃少数。' },
+      { letter: 'B', text: '理性评估两边的生存价值与局势演变，选择一条能将整体效率损失降到最低的计算路径。' },
+      { letter: 'C', text: '痛苦地拒绝这种量化生命的行为。坚信生命不能被当做数字加减，宁可砸碎规则去寻找没有牺牲的方法。' },
+      { letter: 'D', text: '被强烈的道德与情感撕裂，无法做出冷血的决定，宁愿用自己的肉身去阻挡危机，也不愿成为审判者。' },
+    ],
+    dimension: 'T/F',
+    source: '《Fate/Zero》',
+  },
+  {
+    id: 11,
+    stem: '曙光破晓的那田蜘蛛山密林',
+    context: '经过惨烈的搏杀，你终于将武器斩断了恶鬼的脖颈。在它身体消散、流着泪流露出过去的悲惨遭遇时，你会：',
+    options: [
+      { letter: 'A', text: '眼神冰冷地收刀入鞘，立刻转过身搜寻周围是否还有残留的次要威胁，严格执行清理流程。' },
+      { letter: 'B', text: '冷漠地注视着其消亡，判定过去的悲剧无法洗刷其残害无辜的事实，在理智上对其眼泪不为所动。' },
+      { letter: 'C', text: '在它彻底消失前，缓缓走上前握住它正在消散的手掌，为这个曾经也是人类的悲伤灵魂默哀。' },
+      { letter: 'D', text: '被对方临终前的情感波动深深触动，流下同情的眼泪，试图在最后时刻给予它人性的抚慰。' },
+    ],
+    dimension: 'T/F',
+    source: '《鬼灭之刃》',
+  },
+  {
+    id: 12,
+    stem: '规则严苛的高度育成高级中学教室',
+    context: '你所在的班级面临极度残酷的考核，不合格者将被当场退学清除。作为隐身于幕后的核心决策人，你的破局思路是：',
+    options: [
+      { letter: 'A', text: '将所有人视为可分配的资源，精准计算每个人的能力水平，通过冷酷的利益切割来确保整体安全。' },
+      { letter: 'B', text: '收集对局者的弱点与内部规章的机制漏洞，利用心理战和信息差进行精密的幕后操纵。' },
+      { letter: 'C', text: '主动组织大家共同开会，倾听每个人的不安，试图用坦诚的情感将这个濒临破碎的集体凝聚起来。' },
+      { letter: 'D', text: '宁可自己承担最大的清洗风险，也要坚定地护住那些跟不上的弱小同伴，不愿放弃任何一条纽带。' },
+    ],
+    dimension: 'T/F',
+    source: '《欢迎来到实力至上主义的教室》',
+  },
+  {
+    id: 13,
+    stem: '王都露格尼卡喧闹的水果摊前',
+    context: '你拥有死后重置时间的特殊能力，但眼前是一场无论怎么选都会迎向覆灭的复杂乱局。你打算如何摸索通关路径？',
+    options: [
+      { letter: 'A', text: '迅速在脑海中绘制出精确到分钟的时间轴与情报网，穷举所有已知变量，试图推演出唯一的生存解。' },
+      { letter: 'B', text: '严密控制自己下一次重置后的每一句措辞、每一个神态，追求对因果律收束的绝对掌控。' },
+      { letter: 'C', text: '不做任何死板的前提规划，完全凭前几次失败积攒的战斗本能，换一种截然不同的方向和风格去硬闯。' },
+      { letter: 'D', text: '抱着开放的心态面对未知的变数，见招拆招，享受局势自然流转带来的随机可能。' },
+    ],
+    dimension: 'J/P',
+    source: '《Re:从零开始的异世界生活》',
+  },
+  {
+    id: 14,
+    stem: '微风拂过的中央王国圣都街道',
+    context: '你即将踏上一场可能长达数年、横跨大半个内陆的漫长旅程。在整理行囊准备出发时，你的真实状态是：',
+    options: [
+      { letter: 'A', text: '规划好精确到月的行程节点，备齐沿途所有城镇可能需要的解毒药、应急干粮和各币种资金。' },
+      { letter: 'B', text: '设定好清晰的阶段性探索目标，有条不紊地推进旅程，要求自己按时抵达既定地点。' },
+      { letter: 'C', text: '走到哪里算哪里，不设置具体的时间红线，哪怕在一个无名小村庄里为了一个无聊的民间戏法耽搁半年。' },
+      { letter: 'D', text: '随心所欲地漫步，随时为了沿途一处奇特的地貌或者一件偶然听闻的趣事而彻底改变原本的行进方向。' },
+    ],
+    dimension: 'J/P',
+    source: '《葬送的芙莉莲》',
+  },
+  {
+    id: 15,
+    stem: '充满未知的贪婪之岛起始悬崖',
+    context: '进入这款高度危险的实体卡牌收集游戏后，为了成功通关并拿到最终的现实奖励，你会：',
+    options: [
+      { letter: 'A', text: '仔细钻研卡片图鉴与抢夺规则，制定一套效率最高、防守最稳固的结构化掠夺计划。' },
+      { letter: 'B', text: '严格按照预估的胜率进行每一步行动，将探索过程当成一项严密的工作，按部就班地收集。' },
+      { letter: 'C', text: '专注于探索游戏中那些奇奇怪怪的隐藏彩蛋，收集一些毫无战斗属性但功能奇特的娱乐卡片，通关随缘。' },
+      { letter: 'D', text: '漫无目的地闲逛，比起死板的积分排位，更享受在随机遭遇中与其他玩家产生碰撞的乐趣。' },
+    ],
+    dimension: 'J/P',
+    source: '《全职猎人》',
+  },
+  {
+    id: 16,
+    stem: '秋叶原未来道具研究所的杂乱大厅',
+    context: '你面前的操作台可以通过微小的干扰改写过去，从而让未来的走向发生移位。在改写因果时，你的策略是：',
+    options: [
+      { letter: 'A', text: '精确测算每一次历史微调的扰动比率，严密监控因果流向，容不得未来出现半点既定轨道外的偏差。' },
+      { letter: 'B', text: '设定严苛的收束指标，严格按照标准的回归流程推进时空修正，追求绝对的秩序感。' },
+      { letter: 'C', text: '先凭直觉尝试发送几条干扰信息试试水，看看未来的局势会偏折到什么离谱好玩的方向再行判断。' },
+      { letter: 'D', text: '放弃对因果链条的强迫症式掌控，任由时空线自行推演，在混乱多变的平行状态中寻找灵感。' },
+    ],
+    dimension: 'J/P',
+    source: '《命运石之门》',
+  },
+];
+
+// ============================================================
+//  MBTI 角色映射表
+// ============================================================
+const CHARACTER_MAP = {
+  'INTJ': {
+    name: '鲁路修·兰佩路基',
+    source: '《Code Geass 反叛的鲁路修》',
+    quote: '"棋局已定，世界为盘。"',
+    desc: '冷静的战略家，以超凡的智慧在幕后操纵一切。你拥有深邃的洞察力和坚定的意志，为了更高的目标可以背负一切。在人群中，你永远是那个运筹帷幄的棋手。',
+    image: 'images/INTJ.png',
+  },
+  'INTP': {
+    name: 'L',
+    source: '《死亡笔记》',
+    quote: '"真相只有一个，逻辑永无止境。"',
+    desc: '天才推理者，用理性和逻辑解构一切谜题。你拥有无与伦比的分析能力，在思维的迷宫中自由穿行。对你而言，理解世界的运作方式比任何事情都重要。',
+    image: 'images/INTP.png',
+  },
+  'ENTJ': {
+    name: '吉尔伽美什',
+    source: '《Fate 系列》',
+    quote: '"杂种，谁允许你直视本王了？"',
+    desc: '王中之王，天生的统治者和领袖。你拥有绝对的自信和强大的气场，从不怀疑自己的判断。在你的世界里，只有你认可的才配称为「宝物」。',
+    image: 'images/ENTJ.png',
+  },
+  'ENTP': {
+    name: '灵幻新隆',
+    source: '《灵能百分百》',
+    quote: '"我可是最强的灵能力者……虽然是个骗子。"',
+    desc: '机智的欺诈师与天生的演说家，口才和应变能力无人能及。你总能在绝境中找到出路，用幽默和智慧化解危机。即便没有超能力，你也能成为众人依赖的对象。',
+    image: 'images/ENTP.png',
+  },
+  'INFJ': {
+    name: '宇智波鼬',
+    source: '《火影忍者》',
+    quote: '"我永远爱你，无论你变成什么样。"',
+    desc: '沉默的守护者，拥有深邃的内心世界和强烈的使命感。你愿意为了珍视的人背负一切，在黑暗中独自前行。你的温柔深藏不露，却比任何人都更加坚定。',
+    image: 'images/INFJ.png',
+  },
+  'INFP': {
+    name: '金木研',
+    source: '《东京喰种》',
+    quote: '"这个世界是错的……但我也不想伤害任何人。"',
+    desc: '温柔的悲剧诗人，内心世界丰富而敏感。你在痛苦中成长，却始终保持着善良的本心。你渴望一个没有伤害的世界，即使这个世界一再伤害你。',
+    image: 'images/INFP.png',
+  },
+  'ENFJ': {
+    name: '灶门炭治郎',
+    source: '《鬼灭之刃》',
+    quote: '"无论多少次，我都会站起来。"',
+    desc: '温暖的领袖，用真诚和勇气感染着身边的每一个人。你拥有强大的共情能力，总能理解他人的痛苦并给予帮助。你的温柔不是软弱，而是最强大的力量。',
+    image: 'images/ENFJ.png',
+  },
+  'ENFP': {
+    name: '漩涡鸣人',
+    source: '《火影忍者》',
+    quote: '"说到做到，就是我的忍道！"',
+    desc: '永不言弃的梦想家，用热情和信念改变世界。你相信每一个人都值得被理解和接纳，并用你的阳光照亮了无数人的内心。你的乐观是改变世界的力量。',
+    image: 'images/ENFP.png',
+  },
+  'ISTJ': {
+    name: '利威尔·阿克曼',
+    source: '《进击的巨人》',
+    quote: '"我选择相信我自己。"',
+    desc: '人类最强士兵，严谨、自律、追求极致。你用行动而非言语证明自己，每一个决定都经过深思熟虑。在混乱的世界中，你是那个永远可靠的支柱。',
+    image: 'images/ISTJ.png',
+  },
+  'ESTJ': {
+    name: '迪卢克',
+    source: '《原神》',
+    quote: '"正义不必张扬，但必须执行。"',
+    desc: '暗夜中的正义执行者，用秩序和规则守护蒙德。你拥有强烈的责任感和执行力，在黑暗中独自战斗。你的正义不需要旁人的理解，只需要被执行。',
+    image: 'images/ESTJ.png',
+  },
+  'ESFJ': {
+    name: '希斯特里亚·雷斯',
+    source: '《进击的巨人》',
+    quote: '"我要成为真正的女王。"',
+    desc: '温柔而坚定的守护者，从怯懦的少女成长为真正的女王。你关心身边的每一个人，愿意为他们付出一切。你的善良和责任感让你的光芒照亮了整个世界。',
+    image: 'images/ESFJ.png',
+  },
+  'ISTP': {
+    name: '桐谷和人',
+    source: '《刀剑神域》',
+    quote: '"这不是游戏，这是另一场真实。"',
+    desc: '孤高的黑衣剑士，用实力和行动证明一切。你擅长在实战中快速学习和适应，享受独自面对挑战的刺激。在虚拟和现实的边界，你始终忠于自己的判断。',
+    image: 'images/ISTP.png',
+  },
+  'ISFP': {
+    name: '托尔芬',
+    source: '《冰海战记》',
+    quote: '"我没有敌人。"',
+    desc: '追寻和平的战士，从复仇的火焰中涅槃重生。你拥有敏锐的感知力和深沉的内心世界，在经历了无数痛苦后找到了真正的自我。你的沉默中蕴含着巨大的力量。',
+    image: 'images/ISFP.png',
+  },
+  'ESTP': {
+    name: '蛇喰梦子',
+    source: '《狂赌之渊》',
+    quote: '"赌博就是人生的全部，不是吗？"',
+    desc: '疯狂的赌徒，在风险和刺激中享受生命的快感。你拥有超凡的直觉和应变能力，越是危险的情况越能激发你的潜能。对你而言，人生就是一场豪赌。',
+    image: 'images/ESTP.png',
+  },
+  'ESFP': {
+    name: '蒙奇·D·路飞',
+    source: '《航海王》',
+    quote: '"我是要成为海贼王的男人！"',
+    desc: '自由的冒险家，用热情和勇气感染着每一个人。你活在当下，享受每一次冒险和相遇。你的天真不是幼稚，而是看透一切后依然选择相信梦想的力量。',
+    image: 'images/ESFP.png',
+  },
+};
+
+// 兜底：ISFJ 没有立绘图片，使用通用描述
+CHARACTER_MAP['ISFJ'] = {
+  name: '温柔的守护者',
+  source: '——隐藏的次元人格 ——',
+  quote: '"默默守护，就是我的战斗方式。"',
+  desc: 'ISFJ 是稀有的次元人格，拥有极强的责任心和细腻的关怀之心。你如同暗夜中的烛火，不张扬却温暖着身边的每一个人。你的力量在于坚持和守护。',
+  image: '',
+};
+
+// ============================================================
+//  DOM 元素引用
+// ============================================================
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const pageWelcome = $('#page-welcome');
+const pageQuiz = $('#page-quiz');
+const pageResult = $('#page-result');
+const pageLoading = $('#page-loading');
+
+const btnStartQuiz = $('#btnStartQuiz');
+const btnResume = $('#btnResume');
+
+const quizProgressLabel = $('#quizProgressLabel');
+const quizDimension = $('#quizDimension');
+const progressBar = $('#progressBar');
+const questionTitle = $('#questionTitle');
+const questionContext = $('#questionContext');
+const optionsContainer = $('#optionsContainer');
+const selectionFeedback = $('#selectionFeedback');
+const btnPrev = $('#btnPrev');
+const answerStatus = $('#answerStatus');
+
+const resultBadge = $('#resultBadge');
+const resultType = $('#resultType');
+const characterImage = $('#characterImage');
+const characterName = $('#characterName');
+const characterQuote = $('#characterQuote');
+const characterDesc = $('#characterDesc');
+const dimensionDetails = $('#dimensionDetails');
+const btnRestart = $('#btnRestart');
+const btnSaveResult = $('#btnSaveResult');
+
+const loadingText = $('#loadingText');
+
+// ============================================================
+//  页面切换
+// ============================================================
+function showPage(page) {
+  [pageWelcome, pageQuiz, pageResult, pageLoading].forEach(p => {
+    p.classList.remove('active');
+    if (p === pageLoading) {
+      p.style.display = 'none';
+    }
+  });
+  if (page === pageLoading) {
+    page.style.display = 'flex';
+    page.style.alignItems = 'center';
+    page.style.justifyContent = 'center';
+    page.style.minHeight = '100vh';
+  }
+  page.classList.add('active');
+}
+
+// ============================================================
+//  加载动画
+// ============================================================
+function showLoading(text) {
+  loadingText.textContent = text || '正在解析次元通道...';
+  showPage(pageLoading);
+}
+function hideLoading() {
+  pageLoading.style.display = 'none';
+  pageLoading.classList.remove('active');
+}
+
+// ============================================================
+//  Toast 提示
+// ============================================================
+function showToast(message, duration = 2500) {
+  const existing = document.querySelector('.toast-msg');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast-msg';
+  toast.textContent = message;
+  Object.assign(toast.style, {
+    position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)',
+    background: 'rgba(0,240,255,0.15)', backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(0,240,255,0.3)', borderRadius: '12px',
+    padding: '12px 24px', color: '#00f0ff', fontSize: '14px', fontWeight: '500',
+    zIndex: '9999', animation: 'fadeInUp 0.4s ease-out',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+  });
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// ============================================================
+//  开始测试（使用 PDF 题库）
+// ============================================================
+btnStartQuiz.addEventListener('click', () => {
+  STATE.questions = JSON.parse(JSON.stringify(DEFAULT_QUESTIONS));
+  showToast('次元通道已开启，准备答题吧', 2000);
+  startQuiz();
+});
+
+// ============================================================
+//  恢复进度
+// ============================================================
+function checkResume() {
+  const saved = localStorage.getItem('mbti_quiz_state');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      if (data.questions && data.answers && data.currentQuestion !== undefined) {
+        btnResume.classList.remove('hidden');
+        btnResume.onclick = () => {
+          STATE.questions = data.questions;
+          STATE.answers = data.answers;
+          STATE.currentQuestion = data.currentQuestion;
+          STATE.totalQuestions = data.questions.length;
+          showToast('已恢复上次答题进度');
+          renderQuiz();
+          showPage(pageQuiz);
+        };
+      }
+    } catch (e) {
+      // 忽略损坏的存储数据
+    }
+  }
+}
+
+// ============================================================
+//  开始答题
+// ============================================================
+function startQuiz() {
+  STATE.answers = new Array(STATE.totalQuestions).fill(null);
+  STATE.currentQuestion = 0;
+  STATE.mbtiResult = null;
+  saveState();
+  renderQuiz();
+  showPage(pageQuiz);
+}
+
+// ============================================================
+//  保存 / 读取状态到 localStorage
+// ============================================================
+function saveState() {
+  const data = {
+    questions: STATE.questions,
+    answers: STATE.answers,
+    currentQuestion: STATE.currentQuestion,
+    totalQuestions: STATE.totalQuestions,
+  };
+  localStorage.setItem('mbti_quiz_state', JSON.stringify(data));
+}
+
+function clearState() {
+  localStorage.removeItem('mbti_quiz_state');
+}
+
+// ============================================================
+//  渲染答题页面
+// ============================================================
+function renderQuiz() {
+  const q = STATE.questions[STATE.currentQuestion];
+  const total = STATE.totalQuestions;
+  const current = STATE.currentQuestion + 1;
+
+  // 更新进度
+  quizProgressLabel.textContent = `进度: 第 ${current} / ${total} 题`;
+  quizDimension.textContent = `维度: ${q.dimension}`;
+  // 显示维度中文名
+  const dimNames = { 'E/I': '能量映射', 'S/N': '信息获取', 'T/F': '决策标准', 'J/P': '行动模式' };
+  quizDimension.textContent = `${dimNames[q.dimension] || q.dimension} (${q.dimension})`;
+  progressBar.style.width = `${(current / total) * 100}%`;
+
+  // 更新题目
+  questionTitle.textContent = `Q${q.id}. ${q.stem}`;
+  questionContext.textContent = q.context || '';
+  // 显示来源作品
+  if (q.source) {
+    questionContext.textContent += `\n—— ${q.source}`;
+  }
+
+  // 渲染选项
+  optionsContainer.innerHTML = '';
+  q.options.forEach((opt, idx) => {
+    const card = document.createElement('div');
+    card.className = 'option-card';
+    card.innerHTML = `
+      <span class="option-letter">${opt.letter}</span>
+      <span class="option-text">${opt.text}</span>
+    `;
+    card.addEventListener('click', () => selectOption(idx, card));
+    optionsContainer.appendChild(card);
+  });
+
+  // 如果有已选答案，高亮
+  const existingAnswer = STATE.answers[STATE.currentQuestion];
+  if (existingAnswer !== null) {
+    const cards = optionsContainer.querySelectorAll('.option-card');
+    cards.forEach((card, i) => {
+      if (STATE.questions[STATE.currentQuestion].options[i].letter === existingAnswer) {
+        card.classList.add('selected');
+      }
+    });
+  }
+
+  // 第一题时隐藏上一题按钮
+  if (current === 1) {
+    btnPrev.style.visibility = 'hidden';
+  } else {
+    btnPrev.style.visibility = 'visible';
+  }
+
+  // 更新答案状态
+  updateAnswerStatus();
+
+  // 隐藏反馈
+  selectionFeedback.classList.add('hidden');
+
+  // 重新渲染 Lucide 图标
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateAnswerStatus() {
+  const answered = STATE.answers.filter(a => a !== null).length;
+  answerStatus.textContent = `已答 ${answered} / ${STATE.totalQuestions} 题`;
+}
+
+// ============================================================
+//  选择选项
+// ============================================================
+function selectOption(optionIndex, cardElement) {
+  if (STATE.isTransitioning) return;
+  STATE.isTransitioning = true;
+
+  const q = STATE.questions[STATE.currentQuestion];
+  const selectedLetter = q.options[optionIndex].letter;
+
+  // 移除其他选中状态
+  const allCards = optionsContainer.querySelectorAll('.option-card');
+  allCards.forEach(c => c.classList.remove('selected'));
+  // 设置当前选中
+  cardElement.classList.add('selected');
+
+  // 保存答案
+  STATE.answers[STATE.currentQuestion] = selectedLetter;
+  saveState();
+  updateAnswerStatus();
+
+  // 显示反馈
+  const feedbacks = [
+    '已记录你的选择 ✦',
+    '感受到了你的心意 ✦',
+    '次元之力正在汇聚 ✦',
+    '你的选择已被铭刻 ✦',
+  ];
+  selectionFeedback.textContent = feedbacks[Math.floor(Math.random() * feedbacks.length)];
+  selectionFeedback.classList.remove('hidden');
+
+  // 500ms 后自动跳转下一题
+  setTimeout(() => {
+    selectionFeedback.classList.add('hidden');
+    if (STATE.currentQuestion < STATE.totalQuestions - 1) {
+      // 滑动动画跳转
+      animateToNextQuestion();
+    } else {
+      // 所有题目完成，计算结果
+      calculateResult();
+    }
+    STATE.isTransitioning = false;
+  }, 500);
+}
+
+// ============================================================
+//  题目切换动画
+// ============================================================
+function animateToNextQuestion() {
+  const questionArea = $('#questionArea');
+  const optsArea = optionsContainer;
+
+  // 滑出动画
+  questionArea.style.transition = 'transform 0.35s ease-in, opacity 0.35s ease-in';
+  questionArea.style.transform = 'translateX(-60px)';
+  questionArea.style.opacity = '0';
+  optsArea.style.transition = 'transform 0.35s ease-in, opacity 0.35s ease-in';
+  optsArea.style.transform = 'translateX(-60px)';
+  optsArea.style.opacity = '0';
+
+  setTimeout(() => {
+    STATE.currentQuestion++;
+    renderQuiz();
+
+    // 重置位置
+    questionArea.style.transition = 'none';
+    questionArea.style.transform = 'translateX(60px)';
+    optsArea.style.transition = 'none';
+    optsArea.style.transform = 'translateX(60px)';
+
+    requestAnimationFrame(() => {
+      questionArea.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+      questionArea.style.transform = 'translateX(0)';
+      questionArea.style.opacity = '1';
+      optsArea.style.transition = 'transform 0.4s ease-out, opacity 0.4s ease-out';
+      optsArea.style.transform = 'translateX(0)';
+      optsArea.style.opacity = '1';
+    });
+  }, 350);
+}
+
+// ============================================================
+//  上一题
+// ============================================================
+btnPrev.addEventListener('click', () => {
+  if (STATE.currentQuestion > 0) {
+    STATE.currentQuestion--;
+    saveState();
+    renderQuiz();
+  }
+});
+
+// ============================================================
+//  MBTI 计分引擎
+// ============================================================
+function calculateResult() {
+  showLoading('正在鉴定次元人格...');
+
+  setTimeout(() => {
+    const scores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
+
+    STATE.answers.forEach((answer, idx) => {
+      if (!answer) return;
+      const questionNum = idx + 1;
+
+      if (questionNum <= 4) {
+        // E/I 维度
+        if (answer === 'A' || answer === 'B') scores.E += 1;
+        else scores.I += 1;
+      } else if (questionNum <= 8) {
+        // S/N 维度
+        if (answer === 'A' || answer === 'B') scores.S += 1;
+        else scores.N += 1;
+      } else if (questionNum <= 12) {
+        // T/F 维度
+        if (answer === 'A' || answer === 'B') scores.T += 1;
+        else scores.F += 1;
+      } else {
+        // J/P 维度
+        if (answer === 'A' || answer === 'B') scores.J += 1;
+        else scores.P += 1;
+      }
+    });
+
+    // 构建类型
+    const type = [
+      scores.E >= scores.I ? 'E' : 'I',
+      scores.S >= scores.N ? 'S' : 'N',
+      scores.T >= scores.F ? 'T' : 'F',
+      scores.J >= scores.P ? 'J' : 'P',
+    ].join('');
+
+    STATE.mbtiResult = { type, scores };
+    saveState();
+    hideLoading();
+    renderResult(type, scores);
+  }, 1500);
+}
+
+// ============================================================
+//  渲染结果页
+// ============================================================
+let radarChartInstance = null;
+
+function renderResult(type, scores) {
+  const charData = CHARACTER_MAP[type] || CHARACTER_MAP['INTJ'];
+
+  resultBadge.textContent = 'YOUR ARCHETYPE';
+  resultType.textContent = type;
+
+  // 角色立绘
+  if (charData.image) {
+    characterImage.src = charData.image;
+    characterImage.style.display = 'block';
+    characterImage.onerror = () => {
+      characterImage.style.display = 'none';
+    };
+  } else {
+    characterImage.style.display = 'none';
+  }
+
+  characterName.textContent = charData.name;
+  characterQuote.textContent = charData.quote;
+  characterDesc.textContent = charData.desc;
+
+  // 维度详情
+  const dims = [
+    { label: 'E 外向', value: scores.E, total: 4, left: 'E', right: 'I' },
+    { label: 'S 感觉', value: scores.S, total: 4, left: 'S', right: 'N' },
+    { label: 'T 思考', value: scores.T, total: 4, left: 'T', right: 'F' },
+    { label: 'J 判断', value: scores.J, total: 4, left: 'J', right: 'P' },
+  ];
+
+  const oppositeLabels = {
+    'E': 'I 内向', 'S': 'N 直觉', 'T': 'F 情感', 'J': 'P 感知',
+    'I': 'E 外向', 'N': 'S 感觉', 'F': 'T 思考', 'P': 'J 判断',
+  };
+
+  dimensionDetails.innerHTML = '';
+  const typeLetters = type.split('');
+  const dimKeys = ['E', 'S', 'T', 'J'];
+  const oppKeys = ['I', 'N', 'F', 'P'];
+
+  dimKeys.forEach((key, i) => {
+    const oppKey = oppKeys[i];
+    const val = scores[key];
+    const oppVal = scores[oppKey];
+    const percent = Math.round((val / 4) * 100);
+    const oppPercent = Math.round((oppVal / 4) * 100);
+
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-between p-2 rounded-lg';
+    div.style.background = 'rgba(255,255,255,0.03)';
+    div.innerHTML = `
+      <span class="text-sm font-medium ${typeLetters[i] === key ? 'text-neo-cyan' : 'text-gray-500'}">${key} (${val}/4)</span>
+      <div class="flex-1 mx-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div class="h-full rounded-full" style="width:${percent}%; background: linear-gradient(90deg, #00f0ff, ${typeLetters[i] === key ? '#00f0ff' : '#ff2a85'});"></div>
+      </div>
+      <span class="text-sm font-medium ${typeLetters[i] === oppKey ? 'text-sakura' : 'text-gray-500'}">${oppKey} (${oppVal}/4)</span>
+    `;
+    dimensionDetails.appendChild(div);
+  });
+
+  // 绘制雷达图
+  renderRadarChart(scores);
+
+  showPage(pageResult);
+  if (window.lucide) lucide.createIcons();
+}
+
+// ============================================================
+//  Chart.js 雷达图
+// ============================================================
+function renderRadarChart(scores) {
+  const ctx = document.getElementById('radarChart').getContext('2d');
+
+  if (radarChartInstance) {
+    radarChartInstance.destroy();
+  }
+
+  radarChartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['E 外向', 'S 感觉', 'T 思考', 'J 判断', 'I 内向', 'N 直觉', 'F 情感', 'P 感知'],
+      datasets: [{
+        label: '你的人格倾向',
+        data: [
+          scores.E, scores.S, scores.T, scores.J,
+          scores.I, scores.N, scores.F, scores.P,
+        ],
+        backgroundColor: 'rgba(0, 240, 255, 0.15)',
+        borderColor: 'rgba(0, 240, 255, 0.8)',
+        borderWidth: 2,
+        pointBackgroundColor: '#00f0ff',
+        pointBorderColor: '#121820',
+        pointBorderWidth: 2,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointHoverBackgroundColor: '#ff2a85',
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+      scales: {
+        r: {
+          beginAtZero: true,
+          max: 4,
+          min: 0,
+          ticks: {
+            stepSize: 1,
+            display: true,
+            backdropColor: 'transparent',
+            color: 'rgba(255,255,255,0.4)',
+            font: { size: 10 },
+          },
+          pointLabels: {
+            color: 'rgba(255,255,255,0.7)',
+            font: { size: 12, weight: '500' },
+          },
+          grid: {
+            color: 'rgba(255,255,255,0.1)',
+          },
+          angleLines: {
+            color: 'rgba(255,255,255,0.1)',
+          },
+        },
+      },
+    },
+  });
+}
+
+// ============================================================
+//  重新测试
+// ============================================================
+btnRestart.addEventListener('click', () => {
+  clearState();
+  STATE.questions = [];
+  STATE.answers = [];
+  STATE.currentQuestion = 0;
+  STATE.mbtiResult = null;
+  btnResume.classList.add('hidden');
+  showPage(pageWelcome);
+  if (window.lucide) lucide.createIcons();
+});
+
+// ============================================================
+//  保存结果（打印）
+// ============================================================
+btnSaveResult.addEventListener('click', () => {
+  window.print();
+});
+
+// ============================================================
+//  Canvas 粒子动画背景
+// ============================================================
+(function initParticles() {
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  let mouseX = -1000;
+  let mouseY = -1000;
+  let animationId;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // 跟踪鼠标位置
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+  document.addEventListener('mouseleave', () => {
+    mouseX = -1000;
+    mouseY = -1000;
+  });
+
+  // 创建粒子
+  class Particle {
+    constructor() {
+      this.reset();
+      this.y = Math.random() * canvas.height;
+    }
+    reset() {
+      this.x = Math.random() * canvas.width;
+      this.y = canvas.height + Math.random() * 100;
+      this.size = Math.random() * 2.5 + 0.5;
+      this.speedY = Math.random() * 0.6 + 0.2;
+      this.speedX = (Math.random() - 0.5) * 0.3;
+      this.opacity = Math.random() * 0.6 + 0.2;
+      this.color = Math.random() < 0.3
+        ? `rgba(255, 42, 133, ${this.opacity})`
+        : `rgba(0, 240, 255, ${this.opacity})`;
+      this.angle = Math.random() * Math.PI * 2;
+      this.wobbleSpeed = Math.random() * 0.02 + 0.005;
+      this.wobbleAmp = Math.random() * 0.5 + 0.2;
+    }
+    update() {
+      this.y -= this.speedY;
+      this.angle += this.wobbleSpeed;
+      this.x += this.speedX + Math.sin(this.angle) * this.wobbleAmp;
+
+      // 鼠标吸引效果（微弱）
+      const dx = this.x - mouseX;
+      const dy = this.y - mouseY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 150 && dist > 0) {
+        const force = (150 - dist) / 150 * 0.3;
+        this.x += (dx / dist) * force;
+        this.y += (dy / dist) * force;
+      }
+
+      if (this.y < -20 || this.x < -20 || this.x > canvas.width + 20) {
+        this.reset();
+      }
+    }
+    draw(ctx) {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+      // 发光效果
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 2, 0, Math.PI * 2);
+      ctx.fillStyle = this.color.replace(/[\d.]+\)$/, `${this.opacity * 0.3})`);
+      ctx.fill();
+    }
+  }
+
+  // 初始化粒子
+  const particleCount = Math.min(80, Math.floor(window.innerWidth * window.innerHeight / 12000));
+  for (let i = 0; i < particleCount; i++) {
+    particles.push(new Particle());
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.update();
+      p.draw(ctx);
+    });
+    animationId = requestAnimationFrame(animate);
+  }
+
+  animate();
+
+  // 窗口大小变化时调整粒子数量
+  window.addEventListener('resize', () => {
+    const newCount = Math.min(80, Math.floor(window.innerWidth * window.innerHeight / 12000));
+    while (particles.length < newCount) {
+      particles.push(new Particle());
+    }
+    while (particles.length > newCount) {
+      particles.pop();
+    }
+  });
+})();
+
+// ============================================================
+//  初始化
+// ============================================================
+function initApp() {
+  // 检查是否有保存的进度
+  checkResume();
+
+  // 渲染 Lucide 图标
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', initApp);
+
+// ============================================================
+//  键盘快捷键：1-4 选择选项
+// ============================================================
+document.addEventListener('keydown', (e) => {
+  if (pageQuiz.classList.contains('active') && !STATE.isTransitioning) {
+    const keyMap = { '1': 0, '2': 1, '3': 2, '4': 3 };
+    const idx = keyMap[e.key];
+    if (idx !== undefined) {
+      const cards = optionsContainer.querySelectorAll('.option-card');
+      if (cards[idx]) {
+        selectOption(idx, cards[idx]);
+      }
+    }
+    // 左箭头：上一题
+    if (e.key === 'ArrowLeft' && STATE.currentQuestion > 0) {
+      btnPrev.click();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
